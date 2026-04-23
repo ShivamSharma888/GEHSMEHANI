@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academic Calendar - GEHS Mehani</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <style>
+        /* === PREMIUM THEME === */
+        :root { --primary: #0f172a; --accent: #3b82f6; --glass-bg: rgba(15, 23, 42, 0.85); --glass-border: rgba(255, 255, 255, 0.1); }
+        body { font-family: 'Inter', sans-serif; background: radial-gradient(circle at top right, #1e293b, #0f172a); color: white; min-height: 100vh; overflow-x: hidden; }
+        
+        /* SIDEBAR */
+        .sidebar { height: 100vh; width: 260px; background: var(--glass-bg); border-right: 1px solid var(--glass-border); position: fixed; z-index: 100; padding: 30px 0; transition: 0.3s; }
+        .sidebar .brand { text-align: center; margin-bottom: 30px; }
+        .nav-item { padding: 15px 30px; color: #94a3b8; text-decoration: none; display: flex; align-items: center; gap: 15px; transition: 0.2s;}
+        .nav-item:hover, .nav-item.active { color: white; background: rgba(59,130,246,0.2); border-left: 4px solid var(--accent); }
+        
+        /* MAIN CONTENT & CARDS */
+        .main-content { margin-left: 260px; padding: 30px; }
+        .glass-card { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border); border-radius: 16px; padding: 25px; margin-bottom: 25px; transition: transform 0.2s; }
+        .glass-card:hover { transform: translateY(-5px); background: rgba(255, 255, 255, 0.08); }
+        
+        /* SPECIFIC CALENDAR STYLES */
+        .form-select { background: rgba(0,0,0,0.3) !important; border: 1px solid var(--glass-border) !important; color: white !important; cursor: pointer; }
+        .form-select:focus { border-color: var(--accent) !important; box-shadow: 0 0 0 0.25rem rgba(59,130,246,0.5) !important; }
+        option { background: var(--primary); color: white; }
+        
+        /* Category Accents */
+        .border-exam { border-top: 4px solid #ef4444 !important; } /* Red */
+        .border-holiday { border-top: 4px solid #10b981 !important; } /* Green */
+        .border-bagfree { border-top: 4px solid #f59e0b !important; } /* Yellow */
+        .border-activity { border-top: 4px solid #3b82f6 !important; } /* Blue */
+        .border-academic { border-top: 4px solid #8b5cf6 !important; } /* Purple */
+
+        /* RESPONSIVE */
+        .mobile-toggle { display: none; background: transparent; border: 1px solid var(--glass-border); color: white; padding: 10px; border-radius: 8px; margin-bottom: 20px; }
+        @media (max-width: 768px) { .sidebar { transform: translateX(-100%); } .sidebar.show { transform: translateX(0); } .main-content { margin-left: 0; padding: 15px; } .mobile-toggle { display: inline-block; } }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar" id="sidebar">
+        <div class="brand">
+            <i class="fa-solid fa-school fa-2x text-primary mb-2"></i>
+            <h5 class="fw-bold text-white">GEHS Mehani</h5>
+        </div>
+        <a href="index.html" class="nav-item"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+        <a href="attendance.html" class="nav-item"><i class="fa-solid fa-clipboard-user"></i> Attendance</a>
+        <a href="homework.html" class="nav-item"><i class="fa-solid fa-book-open"></i> Homework</a>
+        <a href="gallery.html" class="nav-item"><i class="fa-solid fa-photo-film"></i> Gallery</a>
+        <a href="calendar.html" class="nav-item active"><i class="fa-solid fa-calendar-days"></i> Calendar</a>
+        <a href="#" class="nav-item text-danger mt-5" onclick="logout()"><i class="fa-solid fa-power-off"></i> Logout</a>
+    </div>
+
+    <div class="main-content">
+        <button class="mobile-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i> Menu</button>
+        
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+            <div>
+                <h2 class="text-white m-0">Academic Schedule</h2>
+                <p class="text-muted m-0">Session 2026-27</p>
+            </div>
+            
+            <select class="form-select w-auto" id="month-filter" onchange="renderCalendar()">
+                <option value="ALL">View All Months</option>
+                <option value="JANUARY">January</option>
+                <option value="FEBRUARY">February</option>
+                <option value="MARCH">March</option>
+                <option value="APRIL">April</option>
+                <option value="MAY">May</option>
+                <option value="JUNE">June</option>
+                <option value="JULY">July</option>
+                <option value="AUGUST">August</option>
+                <option value="SEPTEMBER">September</option>
+                <option value="OCTOBER">October</option>
+                <option value="NOVEMBER">November</option>
+                <option value="DECEMBER">December</option>
+            </select>
+        </div>
+
+        <div class="row g-4" id="calendar-grid">
+            </div>
+    </div>
+
+    <script>
+        // AUTHENTICATION CHECK
+        window.onload = () => {
+            let currentRole = localStorage.getItem('school_role');
+            if (!currentRole) { window.location.href = 'index.html'; return; } 
+            renderCalendar(); // Draw the calendar immediately
+        };
+
+        function logout() { localStorage.removeItem('school_role'); window.location.href = 'index.html'; }
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('show'); }
+
+        // --- CALENDAR DATABASE ---
+        // Types: 'exam', 'holiday', 'bagfree', 'activity', 'academic'
+        const calendarData = [
+            // JANUARY
+            { month: "JANUARY", title: "Lohri Break", duration: "11th Jan - 16th Jan", remarks: "Holidays", type: "holiday" },
+            { month: "JANUARY", title: "FA-IV", duration: "3rd Week of Jan", remarks: "Formative Assessment for Diagnostic Teaching", type: "exam" },
+            { month: "JANUARY", title: "Statehood / Republic Day", duration: "25th / 26th Jan", remarks: "Zero-period celebrations / Flag-hoisting, parades", type: "activity" },
+            { month: "JANUARY", title: "Martyr's Day", duration: "30th Jan", remarks: "Tributes during the morning assembly", type: "activity" },
+            { month: "JANUARY", title: "Bag-Free Day", duration: "30th Jan", remarks: "Stress-busting tips for exam preparation", type: "bagfree" },
+            // FEBRUARY
+            { month: "FEBRUARY", title: "Revision for Final Exams", duration: "1st Feb Onwards", remarks: "Effective revision sessions", type: "academic" },
+            { month: "FEBRUARY", title: "National Science Day", duration: "28th Feb", remarks: "Quiz, model demonstrations during zero periods", type: "activity" },
+            { month: "FEBRUARY", title: "Practical Exams (9th-12th)", duration: "20th Feb Onwards", remarks: "Tentative Dates", type: "exam" },
+            { month: "FEBRUARY", title: "Bag-Free Day", duration: "27th Feb", remarks: "Strategies to combat exam stress", type: "bagfree" },
+            // MARCH
+            { month: "MARCH", title: "Final Examination (9th-12th)", duration: "1st Week of March Onwards", remarks: "Final Board and Term Exams", type: "exam" },
+            { month: "MARCH", title: "SA-II", duration: "2nd Week of March", remarks: "Final term assessments", type: "exam" },
+            { month: "MARCH", title: "World Water Day", duration: "22nd Mar", remarks: "Activities to promote water conservation", type: "activity" },
+            { month: "MARCH", title: "Bag-Free Day", duration: "27th Mar", remarks: "Chess, puzzles, and logic games NIPUN Mela", type: "bagfree" },
+            { month: "MARCH", title: "Shiksha Samwad", duration: "31st Mar", remarks: "Reflections and results announcement", type: "academic" },
+            // APRIL
+            { month: "APRIL", title: "Admission Days", duration: "1st April Onwards", remarks: "Curriculum begins afresh", type: "academic" },
+            { month: "APRIL", title: "School Readiness (Class I)", duration: "1st April - June", remarks: "Nurturing little learners for three months", type: "academic" },
+            { month: "APRIL", title: "Remedial Classes", duration: "1st April - 1st May", remarks: "Focused improvement sessions (Class I-VIII & 9th)", type: "academic" },
+            { month: "APRIL", title: "Himachal Day", duration: "15th Apr", remarks: "Tributes to our state during zero period", type: "activity" },
+            { month: "APRIL", title: "World Earth Day", duration: "22nd Apr", remarks: "Awareness and activities during zero periods", type: "activity" },
+            { month: "APRIL", title: "Bag-Free Day", duration: "25th Apr", remarks: "Road safety, health hygiene & Disaster Mgmt Drill", type: "bagfree" },
+            // MAY
+            { month: "MAY", title: "FA-I", duration: "3rd Week of May", remarks: "The first milestone for evaluations", type: "exam" },
+            { month: "MAY", title: "World Red Cross Day", duration: "8th May", remarks: "Lessons on humanity and service", type: "activity" },
+            { month: "MAY", title: "Bag-Free Day", duration: "30th May", remarks: "Visits to post offices and banks etc.", type: "bagfree" },
+            { month: "MAY", title: "No Tobacco Day", duration: "31st May", remarks: "Awareness for healthy living Events", type: "activity" },
+            // JUNE
+            { month: "JUNE", title: "Bal Mela", duration: "1st Week of June", remarks: "Bal Mela at School Level", type: "activity" },
+            { month: "JUNE", title: "World Environment Day", duration: "5th Jun", remarks: "Activities to encourage eco-friendly habits", type: "activity" },
+            { month: "JUNE", title: "FA-II", duration: "3rd Week of Jun", remarks: "Second milestone for evaluation", type: "exam" },
+            { month: "JUNE", title: "International Yoga Day", duration: "21st Jun", remarks: "Yoga sessions promoting mental and physical well-being", type: "activity" },
+            { month: "JUNE", title: "Monsoon Break", duration: "22nd Jun - 29th Jul", remarks: "A refreshing break to rejuvenate.", type: "holiday" },
+            // JULY
+            { month: "JULY", title: "Monsoon Break Continues", duration: "Till 29th July", remarks: "School remains closed.", type: "holiday" },
+            // AUGUST
+            { month: "AUGUST", title: "First Terminal Exams (9th-12th)", duration: "1st Week of Aug", remarks: "The first milestone for evaluations", type: "exam" },
+            { month: "AUGUST", title: "Independence Day", duration: "15th Aug", remarks: "Patriotic events and flag hoisting", type: "activity" },
+            { month: "AUGUST", title: "Bag Free Day", duration: "29th Aug", remarks: "National Sports Day & Bal Mela at Cluster Level", type: "bagfree" },
+            // SEPTEMBER
+            { month: "SEPTEMBER", title: "Teachers' Day", duration: "5th Sep", remarks: "Special Shiksha Samwad to honour educators", type: "activity" },
+            { month: "SEPTEMBER", title: "Hindi Diwas", duration: "14th Sep", remarks: "Celebrating our linguistic heritage", type: "activity" },
+            { month: "SEPTEMBER", title: "World Ozone Day", duration: "16th Sep", remarks: "Painting/Poster making & Awareness Activities", type: "activity" },
+            { month: "SEPTEMBER", title: "SA-I", duration: "3rd Week of Sep", remarks: "Summative Assessment", type: "exam" },
+            { month: "SEPTEMBER", title: "Bag-Free Day", duration: "26th Sep", remarks: "Cultural activities showcasing student talents", type: "bagfree" },
+            // OCTOBER
+            { month: "OCTOBER", title: "Gandhi Jayanti", duration: "2nd Oct", remarks: "Inspirational assemblies & Cleanliness Campaign", type: "activity" },
+            { month: "OCTOBER", title: "Bag-Free Day", duration: "31st Oct", remarks: "Competitions on origami, rangoli, and Diya-making", type: "bagfree" },
+            // NOVEMBER
+            { month: "NOVEMBER", title: "International Science Day", duration: "10th Nov", remarks: "Science Quiz, Exhibition, Science Talks", type: "activity" },
+            { month: "NOVEMBER", title: "Shiksha Diwas", duration: "11th Nov", remarks: "Reflecting on educational milestones", type: "academic" },
+            { month: "NOVEMBER", title: "Children's Day", duration: "14th Nov", remarks: "Activities celebrating childhood", type: "activity" },
+            { month: "NOVEMBER", title: "FA-III", duration: "3rd Week of Nov", remarks: "Third milestone in assessment", type: "exam" },
+            { month: "NOVEMBER", title: "Bag-Free Day", duration: "28th Nov", remarks: "School campus beautification", type: "bagfree" },
+            // DECEMBER
+            { month: "DECEMBER", title: "World AIDS Day", duration: "1st Dec", remarks: "Awareness activities during morning assembly", type: "activity" },
+            { month: "DECEMBER", title: "Second Terminal Exams (9th-12th)", duration: "2nd Week of Dec", remarks: "Pre-board/Terminal preparation", type: "exam" },
+            { month: "DECEMBER", title: "National Mathematics Day", duration: "22nd Dec", remarks: "Maths quiz to enhance numerical skills", type: "activity" },
+            { month: "DECEMBER", title: "Bag Free Day", duration: "26th Dec", remarks: "Exposure visit/Excursion/Picnic", type: "bagfree" },
+            { month: "DECEMBER", title: "Shiksha Samwad", duration: "31st Dec", remarks: "Closing the year with reflections and planning", type: "academic" }
+        ];
+
+        // --- UI CONFIGURATION FOR CATEGORIES ---
+        const typeConfig = {
+            'exam': { color: 'danger', icon: 'fa-pen-to-square', label: 'Examination', border: 'border-exam' },
+            'holiday': { color: 'success', icon: 'fa-umbrella-beach', label: 'Holiday', border: 'border-holiday' },
+            'bagfree': { color: 'warning text-dark', icon: 'fa-backpack', label: 'Bag-Free Day', border: 'border-bagfree' },
+            'activity': { color: 'info text-dark', icon: 'fa-masks-theater', label: 'School Event', border: 'border-activity' },
+            'academic': { color: 'primary', icon: 'fa-book-open-reader', label: 'Academic Phase', border: 'border-academic' }
+        };
+
+        // --- RENDER LOGIC ---
+        function renderCalendar() {
+            const filter = document.getElementById('month-filter').value;
+            const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = '';
+
+            let filteredData = calendarData;
+            if (filter !== 'ALL') {
+                filteredData = calendarData.filter(event => event.month === filter);
+            }
+
+            if (filteredData.length === 0) {
+                grid.innerHTML = '<div class="col-12 text-center text-muted mt-5"><i class="fa-regular fa-calendar-xmark fa-3x mb-3"></i><br>No events scheduled for this month.</div>';
+                return;
+            }
+
+            filteredData.forEach(event => {
+                const config = typeConfig[event.type];
+                
+                grid.innerHTML += `
+                    <div class="col-md-6 col-xl-4">
+                        <div class="glass-card h-100 position-relative p-4 ${config.border}">
+                            
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <span class="badge bg-secondary opacity-75">${event.month}</span>
+                                <span class="badge bg-${config.color}"><i class="fa-solid ${config.icon} me-1"></i> ${config.label}</span>
+                            </div>
+                            
+                            <h5 class="text-white fw-bold mb-2">${event.title}</h5>
+                            <p class="text-info small mb-3">
+                                <i class="fa-regular fa-calendar-days me-2"></i>${event.duration}
+                            </p>
+                            
+                            <p class="text-muted small m-0 border-top pt-3" style="border-color: rgba(255,255,255,0.05) !important;">
+                                ${event.remarks}
+                            </p>
+                            
+                        </div>
+                    </div>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>

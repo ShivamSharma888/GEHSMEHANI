@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance - GEHS Mehani</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <style>
+        :root { --primary: #0f172a; --accent: #3b82f6; --glass-bg: rgba(15, 23, 42, 0.85); --glass-border: rgba(255, 255, 255, 0.1); }
+        body { font-family: 'Inter', sans-serif; background: radial-gradient(circle at top right, #1e293b, #0f172a); color: white; min-height: 100vh; overflow-x: hidden;}
+        .sidebar { height: 100vh; width: 260px; background: var(--glass-bg); border-right: 1px solid var(--glass-border); position: fixed; z-index: 100; padding: 30px 0; transition: 0.3s; }
+        .sidebar .brand { text-align: center; margin-bottom: 30px; }
+        .nav-item { padding: 15px 30px; color: #94a3b8; text-decoration: none; display: flex; align-items: center; gap: 15px; }
+        .nav-item:hover, .nav-item.active { color: white; background: rgba(59,130,246,0.2); border-left: 4px solid var(--accent); }
+        .main-content { margin-left: 260px; padding: 30px; }
+        .glass-card { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border); border-radius: 16px; padding: 25px; margin-bottom: 25px; }
+        .form-control, .form-select { background: rgba(0,0,0,0.3) !important; border: 1px solid var(--glass-border) !important; color: white !important; }
+        .form-control::placeholder { color: #94a3b8 !important; }
+        .form-control:focus, .form-select:focus { border-color: var(--accent) !important; box-shadow: 0 0 0 0.25rem rgba(59,130,246,0.5) !important; }
+        option { background: var(--primary); color: white; }
+        
+        ::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+
+        .table { color: white !important; }
+        .table-dark th { background: rgba(0,0,0,0.5) !important; color: white !important; border-bottom: 1px solid var(--glass-border); }
+        td { border-color: var(--glass-border) !important; background: transparent !important; color: #e2e8f0 !important;}
+        .mobile-toggle { display: none; background: transparent; border: 1px solid var(--glass-border); color: white; padding: 10px; border-radius: 8px; margin-bottom: 20px; }
+        @media (max-width: 768px) { .sidebar { transform: translateX(-100%); } .sidebar.show { transform: translateX(0); } .main-content { margin-left: 0; padding: 15px; } .mobile-toggle { display: inline-block; } }
+        .requires-edit, .requires-hm { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar" id="sidebar">
+        <div class="brand">
+            <i class="fa-solid fa-school fa-2x text-primary mb-2"></i>
+            <h5 class="fw-bold text-white">GEHS Mehani</h5>
+        </div>
+        <a href="index.html" class="nav-item"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+        <a href="attendance.html" class="nav-item active"><i class="fa-solid fa-clipboard-user"></i> Attendance</a>
+                <a href="HOMEWORK.HTML" class="nav-item"><i class="fa-solid fa-book-open"></i> Homework</a>
+
+        <a href="gallery.html" class="nav-item"><i class="fa-solid fa-photo-film"></i> Gallery</a>
+        <a href="#" class="nav-item text-danger mt-5" onclick="logout()"><i class="fa-solid fa-power-off"></i> Logout</a>
+    </div>
+
+    <div class="main-content">
+        <button class="mobile-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i> Menu</button>
+        <h2 class="mb-4 text-white">Manage Attendance</h2>
+
+        <div class="glass-card requires-edit">
+            <h5 class="text-info mb-3">Log New Entry</h5>
+            <form onsubmit="recordAttendance(event)">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <select class="form-select" id="att-class" onchange="updateStudentList()" required>
+                            <option value="">Select Class...</option>
+                            <option value="6th">Class 6th</option>
+                            <option value="7th">Class 7th</option>
+                            <option value="8th">Class 8th</option>
+                            <option value="9th">Class 9th</option>
+                            <option value="10th">Class 10th</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select" id="att-name" required disabled>
+                            <option value="">Select Student...</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="att-status" required>
+                            <option value="Present">🟢 Present</option>
+                            <option value="Absent">🔴 Absent</option>
+                            <option value="Leave">🟡 Leave</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">Save</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="glass-card p-0 overflow-hidden">
+            <div class="p-3 border-bottom" style="border-color: var(--glass-border) !important; background: rgba(0,0,0,0.2);">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                    <h5 class="m-0 text-white"><i class="fa-solid fa-table-list"></i> Daily Roster</h5>
+                    <div class="d-flex gap-2 align-items-center">
+                        <label class="text-muted small mb-0 text-nowrap">Export Date:</label>
+                        <input type="date" class="form-control form-control-sm" id="export-date" style="max-width: 150px;">
+                        <button class="btn btn-sm btn-success text-nowrap" onclick="downloadCSV()">
+                            <i class="fa-solid fa-file-csv"></i> Download CSV
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="p-3">Date</th>
+                            <th class="p-3">Class</th>
+                            <th class="p-3">Name</th>
+                            <th class="p-3">Status</th>
+                            <th class="p-3 requires-hm">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendanceTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentRole = localStorage.getItem('school_role');
+
+        // FIXED: Added missing comma
+        const studentDatabase = {
+            "6th": ["Rahul Sharma", "Amit Kumar", "Priya Singh", "Neha Gupta"],
+            "7th": ["Rohan Verma", "Sneha Das", "Karan Patel", "Vikas Yadav"],
+            "8th": ["Anjali Sharma", "Suresh Kumar", "Vikash Thakur", "Pooja Rani"], 
+            "9th": ["Rohan Verma", "Sneha Das", "Karan Patel", "Vikas Yadav"],
+            "10th": ["Rohan Verma", "Sneha Das", "Karan Patel", "Vikas Yadav"]
+        };
+
+        window.onload = () => {
+            let currentRole = localStorage.getItem('school_role');
+            
+            // STRICT SECURITY KICKOUT
+            if (!currentRole) { 
+                window.location.href = 'index.html'; 
+                return; // Stop running code
+            } 
+            
+            // Apply Permissions...
+            if (currentRole === 'hm' || currentRole === 'teacher') {
+                document.querySelectorAll('.requires-edit').forEach(el => el.style.display = 'block');
+            }
+            // ... (rest of your onload logic for that specific page)
+        
+            
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('export-date').value = today;
+
+            loadAttendance();
+        };
+
+        function logout() { localStorage.removeItem('school_role'); window.location.href = 'index.html'; }
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('show'); }
+
+        function updateStudentList() {
+            const classSelect = document.getElementById('att-class').value;
+            const studentSelect = document.getElementById('att-name');
+            
+            studentSelect.innerHTML = '<option value="">Select Student...</option>';
+            
+            if (classSelect && studentDatabase[classSelect]) {
+                studentSelect.disabled = false;
+                studentDatabase[classSelect].forEach(student => {
+                    studentSelect.innerHTML += `<option value="${student}">${student}</option>`;
+                });
+            } else {
+                studentSelect.disabled = true;
+            }
+        }
+
+        function recordAttendance(e) {
+            e.preventDefault();
+            const todayISO = new Date().toISOString().split('T')[0]; 
+
+            const record = {
+                id: Date.now(),
+                date: todayISO,
+                classGrade: document.getElementById('att-class').value,
+                name: document.getElementById('att-name').value,
+                status: document.getElementById('att-status').value
+            };
+            
+            let records = JSON.parse(localStorage.getItem('sys_att')) || [];
+            records.unshift(record);
+            localStorage.setItem('sys_att', JSON.stringify(records));
+            
+            e.target.reset();
+            document.getElementById('att-name').disabled = true; 
+            
+            loadAttendance();
+        }
+
+        function deleteAttendance(id) {
+            let records = JSON.parse(localStorage.getItem('sys_att')) || [];
+            localStorage.setItem('sys_att', JSON.stringify(records.filter(r => r.id !== id)));
+            loadAttendance();
+        }
+
+        function loadAttendance() {
+            let records = JSON.parse(localStorage.getItem('sys_att')) || [];
+            const tbody = document.getElementById('attendanceTableBody');
+            
+            if(records.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center p-3 text-muted">No attendance records found.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = records.map(rec => {
+                let badge = rec.status === 'Present' ? 'success' : rec.status === 'Absent' ? 'danger' : 'warning text-dark';
+                return `
+                <tr>
+                    <td class="p-3 text-muted">${rec.date}</td>
+                    <td class="p-3 text-info">${rec.classGrade}</td>
+                    <td class="p-3 fw-bold text-white">${rec.name}</td>
+                    <td class="p-3"><span class="badge bg-${badge}">${rec.status}</span></td>
+                    <td class="p-3 requires-hm" style="display: ${currentRole === 'hm' ? 'table-cell' : 'none'}">
+                        <button class="btn btn-sm btn-danger" onclick="deleteAttendance(${rec.id})"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        function downloadCSV() {
+            const selectedDate = document.getElementById('export-date').value;
+            if (!selectedDate) {
+                alert("Please select a date from the calendar to export.");
+                return;
+            }
+
+            let records = JSON.parse(localStorage.getItem('sys_att')) || [];
+            let filteredRecords = records.filter(record => record.date === selectedDate);
+
+            if (filteredRecords.length === 0) {
+                alert(`No attendance records found for ${selectedDate}.`);
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Date,Class,Student Name,Status\n";
+
+            filteredRecords.forEach(row => {
+                csvContent += `${row.date},${row.classGrade},${row.name},${row.status}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `GEHS_Mehani_Attendance_${selectedDate}.csv`);
+            document.body.appendChild(link);
+            
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
