@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GMS Mehani - Premium Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        /* === PREMIUM CSS VARIABLES & ANIMATIONS === */
+        :root {
+            --primary: #0f172a;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.5);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --glass-bg: rgba(15, 23, 42, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at top right, #1e293b, #0f172a);
+            color: var(--text-main);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* --- LOGIN SCREEN WITH CANVAS GRAPHICS --- */
+        #login-screen {
+            position: fixed;
+            width: 100vw; height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000;
+            background-color: var(--primary);
+        }
+        #particle-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+        }
+        .login-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            padding: 50px;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            width: 100%; max-width: 450px;
+            z-index: 1;
+            transform: translateY(0);
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .role-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+        }
+        .role-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            box-shadow: 0 0 20px var(--accent-glow);
+            transform: translateX(10px);
+        }
+
+        /* --- DASHBOARD LAYOUT --- */
+        #app-layout { display: none; }
+        
+        .sidebar {
+            height: 100vh; width: 260px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--glass-border);
+            position: fixed; z-index: 100;
+            padding: 30px 0;
+        }
+        .sidebar .brand { text-align: center; margin-bottom: 40px; }
+        .sidebar .brand i { font-size: 2.5rem; color: var(--accent); filter: drop-shadow(0 0 10px var(--accent-glow)); }
+        
+        .nav-item {
+            padding: 15px 30px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex; align-items: center; gap: 15px;
+        }
+        .nav-item:hover, .nav-item.active {
+            color: white;
+            background: linear-gradient(90deg, rgba(59,130,246,0.2) 0%, transparent 100%);
+            border-left: 4px solid var(--accent);
+        }
+
+        .main-content {
+            margin-left: 260px; padding: 40px;
+            height: 100vh; overflow-y: auto;
+        }
+
+        /* --- GLASSMORPHISM CARDS --- */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        /* --- CUSTOM TOAST NOTIFICATIONS --- */
+        #toast-container {
+            position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+        }
+        .custom-toast {
+            background: #10b981; color: white;
+            padding: 15px 25px; border-radius: 8px;
+            margin-top: 10px; display: flex; align-items: center; gap: 10px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            animation: slideIn 0.3s forwards;
+        }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* Role Display Utilities */
+        .requires-edit { display: none; }
+        .requires-hm { display: none; }
+        
+        /* Forms & Tables */
+        .form-control, .form-select { background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white; }
+        .form-control:focus, .form-select:focus { background: rgba(255,255,255,0.1); border-color: var(--accent); box-shadow: 0 0 0 0.25rem var(--accent-glow); color: white;}
+        .table { color: var(--text-main); }
+        .table-dark th { background: rgba(0,0,0,0.3); border-color: var(--glass-border); }
+        td, th { border-color: var(--glass-border) !important; background: transparent !important; }
+        
+        .view-section { display: none; }
+        .view-section.active { display: block; animation: fadeUp 0.5s ease; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    </style>
+</head>
+<body>
+
+    <div id="toast-container"></div>
+
+    <div id="login-screen">
+        <canvas id="particle-canvas"></canvas>
+        <div class="login-card">
+            <div class="text-center mb-5">
+                <i class="fa-solid fa-graduation-cap fa-3x text-primary mb-3" style="color: #3b82f6 !important; filter: drop-shadow(0 0 15px rgba(59,130,246,0.5));"></i>
+                <h3 class="fw-bold">GMS Mehani</h3>
+                <p class="text-muted">Secure Access Portal</p>
+            </div>
+            <div class="d-grid gap-3">
+                <button class="role-btn" onclick="login('hm')">
+                    <i class="fa-solid fa-shield-halved text-danger me-2"></i> Headmaster (Full Access)
+                </button>
+                <button class="role-btn" onclick="login('teacher')">
+                    <i class="fa-solid fa-chalkboard-user text-info me-2"></i> Teacher (Write Access)
+                </button>
+                <button class="role-btn" onclick="login('student')">
+                    <i class="fa-solid fa-book-open text-success me-2"></i> Student (Read Only)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="app-layout">
+        
+        <div class="sidebar">
+            <div class="brand">
+                <i class="fa-solid fa-school"></i>
+                <h5 class="mt-3 fw-bold">GMS Mehani</h5>
+                <span id="role-badge" class="badge bg-primary rounded-pill px-3 py-2 mt-2">ROLE</span>
+            </div>
+            
+            <div class="nav-item active" onclick="switchView('dashboard', this)">
+                <i class="fa-solid fa-chart-pie"></i> Analytics Dashboard
+            </div>
+            <div class="nav-item" onclick="switchView('attendance', this)">
+                <i class="fa-solid fa-clipboard-user"></i> Attendance Roster
+            </div>
+            <div class="nav-item" onclick="switchView('gallery', this)">
+                <i class="fa-solid fa-photo-film"></i> Media Gallery
+            </div>
+            
+            <div class="nav-item text-danger mt-5" onclick="logout()" style="border-top: 1px solid var(--glass-border);">
+                <i class="fa-solid fa-power-off"></i> Terminate Session
+            </div>
+        </div>
+
+        <div class="main-content">
+
+            <div id="dashboard" class="view-section active">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><span class="fw-light">Overview /</span> Analytics</h2>
+                    <a href="https://meet.google.com/new" target="_blank" class="btn btn-primary requires-edit"><i class="fa-solid fa-video"></i> Start Virtual Class</a>
+                </div>
+
+                <div class="row g-4 mb-4">
+                    <div class="col-md-4">
+                        <div class="glass-card text-center border-top border-primary border-3">
+                            <h6 class="text-muted text-uppercase tracking-wider">Total Students</h6>
+                            <h2 class="fw-bold mt-2 display-5">142</h2>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="glass-card text-center border-top border-success border-3">
+                            <h6 class="text-muted text-uppercase tracking-wider">Today's Attendance</h6>
+                            <h2 class="fw-bold mt-2 display-5">94%</h2>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="glass-card text-center border-top border-warning border-3">
+                            <h6 class="text-muted text-uppercase tracking-wider">Active Teachers</h6>
+                            <h2 class="fw-bold mt-2 display-5">12</h2>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-md-8">
+                        <div class="glass-card">
+                            <h5 class="mb-4">Monthly Attendance Trends</h5>
+                            <canvas id="attendanceChart" height="100"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="glass-card">
+                            <h5 class="mb-4">Performance Demographics</h5>
+                            <canvas id="gradeChart" height="220"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="attendance" class="view-section">
+                <h2 class="mb-4"><span class="fw-light">Manage /</span> Attendance</h2>
+                
+                <div class="glass-card requires-edit mb-4">
+                    <h5 class="mb-3 text-accent"><i class="fa-solid fa-plus-circle"></i> Log Entry</h5>
+                    <form id="attendanceForm" onsubmit="recordAttendance(event)">
+                        <div class="row g-3">
+                            <div class="col-md-5">
+                                <input type="text" class="form-control" id="att-name" placeholder="Enter Student Name" required>
+                            </div>
+                            <div class="col-md-4">
+                                <select class="form-select" id="att-status">
+                                    <option value="Present">🟢 Present</option>
+                                    <option value="Absent">🔴 Absent</option>
+                                    <option value="Late">🟡 Late</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <button type="submit" class="btn btn-primary w-100">Commit Record</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="glass-card p-0 overflow-hidden">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th class="p-3">Timestamp</th>
+                                <th class="p-3">Student Identity</th>
+                                <th class="p-3">Status Code</th>
+                                <th class="p-3 requires-hm">Sys Admin</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendanceTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="gallery" class="view-section">
+                <h2 class="mb-4"><span class="fw-light">Media /</span> Gallery</h2>
+                
+                <div class="glass-card requires-edit mb-4">
+                    <form id="galleryForm" onsubmit="uploadPhoto(event)">
+                        <div class="row g-3 align-items-center">
+                            <div class="col-md-5">
+                                <input type="file" class="form-control" id="photo-file" accept="image/*" required>
+                            </div>
+                            <div class="col-md-5">
+                                <input type="text" class="form-control" id="photo-caption" placeholder="Event Metadata (Caption)" required>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-success w-100"><i class="fa-solid fa-cloud-arrow-up"></i> Sync</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="row g-4" id="galleryContainer">
+                    </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- 1. CANVAS PARTICLE ANIMATION (LOGIN BACKGROUND) ---
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let particlesArray = [];
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 1;
+                this.speedX = Math.random() * 1 - 0.5;
+                this.speedY = Math.random() * 1 - 0.5;
+            }
+            update() {
+                this.x += this.speedX; this.y += this.speedY;
+                if (this.size > 0.2) this.size -= 0.01;
+                if(this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                if(this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+            }
+            draw() {
+                ctx.fillStyle = 'rgba(59, 130, 246, 0.5)';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        function initParticles() {
+            particlesArray = [];
+            for (let i = 0; i < 100; i++) particlesArray.push(new Particle());
+        }
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < particlesArray.length; i++) {
+                particlesArray[i].update();
+                particlesArray[i].draw();
+                for (let j = i; j < particlesArray.length; j++) {
+                    const dx = particlesArray[i].x - particlesArray[j].x;
+                    const dy = particlesArray[i].y - particlesArray[j].y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < 100) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = `rgba(59, 130, 246, ${1 - distance/100})`;
+                        ctx.lineWidth = 0.2;
+                        ctx.moveTo(particlesArray[i].x, particlesArray[i].y);
+                        ctx.lineTo(particlesArray[j].x, particlesArray[j].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(animateParticles);
+        }
+        initParticles(); animateParticles();
+
+        // --- 2. NOTIFICATION SYSTEM ---
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+            const bgColor = type === 'success' ? '#10b981' : '#ef4444';
+            
+            toast.className = 'custom-toast';
+            toast.style.background = bgColor;
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
+            
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+        }
+
+        // --- 3. CHART.JS INITIALIZATION ---
+        function initCharts() {
+            // Line Chart
+            const ctxAtt = document.getElementById('attendanceChart').getContext('2d');
+            new Chart(ctxAtt, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Attendance Rate %',
+                        data: [85, 88, 92, 90, 95, 94],
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        borderWidth: 2, fill: true, tension: 0.4
+                    }]
+                },
+                options: { plugins: { legend: { display: false } }, scales: { y: { grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { display: false } } }, color: '#94a3b8' }
+            });
+
+            // Doughnut Chart
+            const ctxGrade = document.getElementById('gradeChart').getContext('2d');
+            new Chart(ctxGrade, {
+                type: 'doughnut',
+                data: {
+                    labels: ['A Grade', 'B Grade', 'C Grade'],
+                    datasets: [{ data: [45, 35, 20], backgroundColor: ['#10b981', '#3b82f6', '#f59e0b'], borderWidth: 0 }]
+                },
+                options: { cutout: '75%', color: '#94a3b8', plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } } }
+            });
+        }
+
+        // --- 4. CORE APPLICATION LOGIC (RBAC) ---
+        let currentRole = null;
+
+        function login(role) {
+            currentRole = role;
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('app-layout').style.display = 'block';
+            
+            const badge = document.getElementById('role-badge');
+            badge.innerText = role === 'hm' ? 'ADMINISTRATOR' : role === 'teacher' ? 'STAFF' : 'STUDENT';
+            badge.className = `badge rounded-pill px-3 py-2 mt-2 ${role === 'hm' ? 'bg-danger' : role === 'teacher' ? 'bg-info text-dark' : 'bg-success'}`;
+            
+            applyPermissions();
+            loadAllData();
+            setTimeout(initCharts, 100); // Init charts after layout is visible
+            showToast(`Session authenticated as ${role.toUpperCase()}`);
+        }
+
+        function logout() {
+            currentRole = null;
+            document.getElementById('app-layout').style.display = 'none';
+            document.getElementById('login-screen').style.display = 'flex';
+            showToast('Session terminated', 'error');
+        }
+
+        function applyPermissions() {
+            document.querySelectorAll('.requires-edit').forEach(el => el.style.display = (currentRole === 'hm' || currentRole === 'teacher') ? 'block' : 'none');
+            document.querySelectorAll('.requires-hm').forEach(el => {
+                let dType = el.tagName === 'TH' || el.tagName === 'TD' ? 'table-cell' : 'block';
+                el.style.display = currentRole === 'hm' ? dType : 'none';
+            });
+        }
+
+        function switchView(viewId, element) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(link => link.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            element.classList.add('active');
+        }
+
+        // --- 5. DATA MANAGEMENT (LocalStorage) ---
+        function recordAttendance(e) {
+            e.preventDefault();
+            const statusVal = document.getElementById('att-status').value;
+            const record = {
+                id: Date.now(),
+                date: new Date().toLocaleString(),
+                name: document.getElementById('att-name').value,
+                status: statusVal
+            };
+            let records = JSON.parse(localStorage.getItem('sys_att')) || [];
+            records.unshift(record);
+            localStorage.setItem('sys_att', JSON.stringify(records));
+            document.getElementById('attendanceForm').reset();
+            loadAttendance();
+            showToast('Record committed to database');
+        }
+
+        function deleteAttendance(id) {
+            let records = JSON.parse(localStorage.getItem('sys_att')) || [];
+            localStorage.setItem('sys_att', JSON.stringify(records.filter(r => r.id !== id)));
+            loadAttendance();
+            showToast('Record purged', 'error');
+        }
+
+        function loadAttendance() {
+            let records = JSON.parse(localStorage.getItem('sys_att')) || [];
+            const tbody = document.getElementById('attendanceTableBody');
+            tbody.innerHTML = records.map(rec => {
+                let badgeClass = rec.status === 'Present' ? 'success' : rec.status === 'Absent' ? 'danger' : 'warning';
+                return `
+                <tr>
+                    <td class="p-3 text-muted"><small>${rec.date}</small></td>
+                    <td class="p-3 fw-bold">${rec.name}</td>
+                    <td class="p-3"><span class="badge bg-${badgeClass}">${rec.status}</span></td>
+                    <td class="p-3 requires-hm" style="display: ${currentRole === 'hm' ? 'table-cell' : 'none'}">
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteAttendance(${rec.id})"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        // --- 6. FILE/IMAGE UPLOAD (Base64) ---
+        function uploadPhoto(e) {
+            e.preventDefault();
+            const file = document.getElementById('photo-file').files[0];
+            const caption = document.getElementById('photo-caption').value;
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    let photos = JSON.parse(localStorage.getItem('sys_photos')) || [];
+                    photos.unshift({ id: Date.now(), img: event.target.result, cap: caption });
+                    try {
+                        localStorage.setItem('sys_photos', JSON.stringify(photos));
+                        document.getElementById('galleryForm').reset();
+                        loadGallery();
+                        showToast('Media synced successfully');
+                    } catch (e) { showToast('Storage Quota Exceeded', 'error'); }
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function deletePhoto(id) {
+            let photos = JSON.parse(localStorage.getItem('sys_photos')) || [];
+            localStorage.setItem('sys_photos', JSON.stringify(photos.filter(p => p.id !== id)));
+            loadGallery();
+            showToast('Media deleted', 'error');
+        }
+
+        function loadGallery() {
+            let photos = JSON.parse(localStorage.getItem('sys_photos')) || [];
+            document.getElementById('galleryContainer').innerHTML = photos.map(photo => `
+                <div class="col-md-4">
+                    <div class="glass-card p-2 position-relative">
+                        ${currentRole === 'hm' ? `<button class="btn btn-sm btn-danger position-absolute top-0 end-0 m-3 z-1" onclick="deletePhoto(${photo.id})"><i class="fa-solid fa-trash"></i></button>` : ''}
+                        <img src="${photo.img}" class="img-fluid rounded mb-3 w-100" style="height: 200px; object-fit: cover;">
+                        <h6 class="text-center text-muted m-0 pb-2">${photo.cap}</h6>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadAllData() { loadAttendance(); loadGallery(); }
+    </script>
+</body>
+</html>
